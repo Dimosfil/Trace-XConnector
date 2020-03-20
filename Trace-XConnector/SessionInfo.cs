@@ -4,15 +4,15 @@ using UniverServer.GameLogic.Adapter;
 
 namespace Trace_XConnector
 {
-    public class GameSessionInfo : ILogDBEntry
+    public class SessionInfo : ILogDBEntry
     {
         public DateTime WriteTime { get; set; }
         public string JsonString { get; set; }
         public string XmlString { get; set; }
-        public GameSessionInfo()
+        public SessionInfo()
         { }
 
-        public GameSessionInfo(DateTime writeTime, string json, string xmlString)
+        public SessionInfo(DateTime writeTime, string json, string xmlString)
         {
             // TODO: Complete member initialization
 
