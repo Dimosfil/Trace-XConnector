@@ -9,19 +9,43 @@ namespace Trace_XConnector
 {
     public class ConverterManager
     {
-        public static ConverterManager Instance => instance;
-        private static ConverterManager instance;
+        public static ConverterManager Instance { get; private set; }
 
         public static void Init()
         {
-            instance = new ConverterManager();
+            if(Instance == null)
+                Instance = new ConverterManager();
         }
 
-        public string ConvertToXml(string json)
+        public T GetJsonObject<T>(string json)
         {
-            var rootObj = JsonConvert.DeserializeObject<JsonData>(json);
+            var rootObj = JsonConvert.DeserializeObject<T>(json);
+            return rootObj;
+        }
 
-            XmlSerializer xsSubmit = new XmlSerializer(typeof(JsonData));
+        public string ConvertOrderDataToXml(JsonOrderData jsonOrderData)
+        {
+            XmlSerializer xsSubmit = new XmlSerializer(typeof(JsonOrderData));
+            string xml;
+
+            using (var sww = new StringWriter())
+            {
+                using (XmlWriter writer = XmlWriter.Create(sww))
+                {
+                    xsSubmit.Serialize(writer, jsonOrderData);
+                    xml = sww.ToString(); // Your XML
+                }
+            }
+
+
+            return xml;
+        }
+
+        public string ConvertOrderExportToXml(string json)
+        {
+            var rootObj = JsonConvert.DeserializeObject<JsonOrderExportData>(json);
+
+            XmlSerializer xsSubmit = new XmlSerializer(typeof(JsonOrderExportData));
             string xml;
 
             using (var sww = new StringWriter())
@@ -37,7 +61,7 @@ namespace Trace_XConnector
             return xml;
         }
 
-        public string ConvertToJson(string xml)
+        public string ConvertXmlToJson(string xml)
         {
             XmlDocument doc = new XmlDocument();
             doc.LoadXml(xml);
