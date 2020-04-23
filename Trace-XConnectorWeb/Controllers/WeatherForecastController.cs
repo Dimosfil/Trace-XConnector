@@ -16,10 +16,12 @@ namespace Trace_XConnectorWeb.Controllers
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
 
+        private readonly IUserActionLogsSender _userActionLogsSender;
         private readonly ILogger<WeatherForecastController> _logger;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(IUserActionLogsSender userActionLogsSender, ILogger<WeatherForecastController> logger)
         {
+            _userActionLogsSender = userActionLogsSender;
             _logger = logger;
         }
 
@@ -27,6 +29,7 @@ namespace Trace_XConnectorWeb.Controllers
         public IEnumerable<WeatherForecast> Get()
         {
             var rng = new Random();
+            _userActionLogsSender.SendInfo(new LogSend() { LogMsg = "IEnumerable<WeatherForecast> Get() rng: " + rng });
             return Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
                 Date = DateTime.Now.AddDays(index),
