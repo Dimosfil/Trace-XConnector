@@ -75,6 +75,8 @@ namespace Trace_XConnector
 
                 JsonOrderData jsonOrderData = ConverterManager.Instance.GetJsonObject<JsonOrderData>(json);
 
+                FileManager.Instance.WriteJson("orderData_",json);
+
                 //if (jsonOrderData == null)
                 //{
                 //    var xmlOrderData = await FileManager.Instance.ReadFileAsync("c:\\work\\XConnectorXml\\orderData_2020-04-14T14_39_28.txt");
@@ -82,12 +84,12 @@ namespace Trace_XConnector
                 //    jsonOrderData = ConverterManager.Instance.GetJsonObject<JsonOrderData>(orderDataJsonString);
                 //}
 
-                if (jsonOrderData == null)
-                {
-                    var xmlOrderData = await FileManager.Instance.ReadFileAsync("c:\\work\\XConnectorXml\\orderData_2020-04-14T14_39_28.json");
-                    
-                    jsonOrderData = ConverterManager.Instance.GetJsonObject<JsonOrderData>(xmlOrderData);
-                }
+                //if (jsonOrderData == null)
+                //{
+                //    var xmlOrderData = await FileManager.Instance.ReadFileAsync("c:\\work\\XConnectorXml\\orderData_2020-04-14T17_49_54.json");
+
+                //    jsonOrderData = ConverterManager.Instance.GetJsonObject<JsonOrderData>(xmlOrderData);
+                //}
 
 
                 if (jsonOrderData != null)
@@ -116,14 +118,14 @@ namespace Trace_XConnector
                     //var jsonFromFileObj = ConverterManager.Instance.GetJsonObject<JsonOrderExportData>(jsonFromFile);
 
                     var jsonOrderExportData = await FileManager.Instance.GetOrderExportAsync(jsonOrderData);
-                    //result = HttpManager.Instance.PostOrderExportRequest(jsonOrderExportData);
+                    result = HttpManager.Instance.PostOrderExportRequest(jsonOrderExportData);
                     
-                    Console.WriteLine($"result: {JsonConvert.SerializeObject(jsonOrderExportData, Formatting.Indented)}");
-                    //Console.WriteLine($"result: {result}");
+                    //Console.WriteLine($"result: {JsonConvert.SerializeObject(jsonOrderExportData, Formatting.Indented)}");
+                    Console.WriteLine($"result: {result}");
                     Console.ReadLine();
 
                     var jsonOrderExportDataToString = JsonConvert.SerializeObject(jsonOrderExportData);
-                    FileManager.Instance.WriteJson(jsonOrderExportDataToString);
+                    FileManager.Instance.WriteJson("orderExportData_", jsonOrderExportDataToString);
 
                 }
                 else

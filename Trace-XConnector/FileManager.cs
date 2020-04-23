@@ -15,7 +15,7 @@ namespace Trace_XConnector
             instance = new FileManager();
         }
 
-        public void WriteJson(string text)
+        public void WriteJson(string fileName, string text)
         {
             // создаем каталог для файла
             string path = @"C:\work\XConnectorXml";
@@ -25,7 +25,7 @@ namespace Trace_XConnector
                 dirInfo.Create();
             }
 
-            string name = "orderData_" + DateTime.Now.ToString("s");
+            string name = fileName + DateTime.Now.ToString("s");
 
             name = name.Replace(':', '_');
             // запись в файл
@@ -107,39 +107,48 @@ namespace Trace_XConnector
             }
 
             int caartonsCount = 0;
-            var currentPallet = orderExport.data.FirstOrDefault(d => d.type == "Pallet");
-            if (currentPallet != null)
+            int caseCount = 0;
+
+            foreach (var currentPallet in orderExport.data)
             {
-                foreach (var @case in orderData.cases)
+                if (currentPallet != null)
                 {
-                    var newCase = new UpdatedData()
+                    for (var caseIndex = 0; caseIndex < orderData.palletCapacity; caseIndex++)
                     {
-                        type = "Case",
-                        serial = @case,
-                        attachmentType = "Carton",
-                        status = "Printed",
-                    };
-                    currentPallet.attachment.Add(newCase);
-
-                    if (caartonsCount < orderData.amount)
-                    {
-                        for (int i = 0; i < orderData.caseCapacity; i++)
+                        var @case = orderData.cases[caseCount];
+                        var newCase = new UpdatedData()
                         {
-                            var next = random.Next(0, statusStrings.Length);
+                            type = "Case",
+                            serial = @case,
+                            attachmentType = "Carton",
+                            status = "Printed",
+                        };
+                        currentPallet.attachment.Add(newCase);
 
-                            var carton = orderData.cartons[caartonsCount];
-                            newCase.attachment.Add(new UpdatedData()
+                        if (caartonsCount < orderData.amount)
+                        {
+                            for (int i = 0; i < orderData.caseCapacity; i++)
                             {
-                                type = "Carton",
-                                serial = carton.serial,
-                                status = statusStrings[next],
-                            });
+                                var next = random.Next(0, statusStrings.Length);
 
-                            caartonsCount++;
+                                var carton = orderData.cartons[caartonsCount];
+                                newCase.attachment.Add(new UpdatedData()
+                                {
+                                    type = "Carton",
+                                    serial = carton.serial,
+                                    status = "Printed",//statusStrings[next],
+                                });
+
+                                caartonsCount++;
+                            }
                         }
+
+                        caseCount++;
                     }
                 }
             }
+
+            
             return orderExport;
         }
 
