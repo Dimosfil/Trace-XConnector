@@ -1,0 +1,11 @@
+{  "orderId": 12,  
+"data":[ 
+{    "type": "Carton", "serial": "0000000000005",    "status": "Printed" }, 
+ 
+{    "type": "Carton", "serial": "0000000000006",    "status": "Rejected" }, {    "type": "Pallet", "serial": "300000000000000011",    "status": "Printed",  "attachmentType": "Case",    "attachment": [     { "type": "Case", "serial": "300000000000000011",      "status": "Printed",    "attachmentType": "Case",      "attachment": [           {           "type": "Carton",          "serial": "0000000000006",          "status": "Printed"    },              {           "type": "Carton",          "serial": "00000000000010",          "status": "Printed"     }      ] }, { "type": "Case", "serial": "300000000000000093",      "status": "Printed",    "attachmentType": "Carton",      "attachment": [      {           "type": "Carton",          "serial": "00000000000015",          "status": "Printed"     },     {           "type": "Carton", 
+ 
+         "serial": "00000000000019",          "status": "Printed"     }  ] } 
+] 
+} 
+] 
+}
