@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Globalization;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Trace_XConnector
+namespace Trace_XConnectorWeb.Trace_X
 {
     public class FileManager
     {
@@ -149,7 +149,7 @@ namespace Trace_XConnector
                 }
             }
 
-            
+
             return orderExport;
         }
 
@@ -160,7 +160,7 @@ namespace Trace_XConnector
             orderExport.orderId = orderData.orderId;
 
             var random = new Random();
-            
+
             foreach (var carton in orderData.cartons)
             {
                 if (!orderExport.data.Exists(o => o.status == "Printed"))

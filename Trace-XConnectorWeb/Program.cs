@@ -5,20 +5,25 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using NLog.Web;
 
 namespace Trace_XConnectorWeb
 {
     public class Program
     {
+        public static NLog.Logger logger;
+
         public static void Main(string[] args)
         {
-            var logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
+            logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
             
             try
             {
                 logger.Debug("init main");
+                //logger.Debug(JsonConvert.SerializeObject(logger.Factory.Configuration));
                 CreateWebHostBuilder(args).Build().Run();
             }
             catch (Exception exception)
@@ -45,6 +50,19 @@ namespace Trace_XConnectorWeb
                     logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
                 })
                 .UseNLog();  // NLog: setup NLog for Dependency injection
+
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                })
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace);
+                })
+                .UseNLog();  // NLog: Setup NLog for Dependency injection
 
         //public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
         //    WebHost.CreateDefaultBuilder(args)

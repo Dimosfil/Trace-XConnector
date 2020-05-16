@@ -23,11 +23,13 @@ namespace Trace_XConnectorWeb
 
         private readonly ILogger<UserActionLogsSender> _logger;
 
+        NLog.Logger _nlogger;
+
         //public LogControllerId LogControllerId;
 
         public UserActionLogsSender(ILogger<UserActionLogsSender> logger)
         {
-            _logger = logger;
+            _nlogger = Program.logger;//logger;
         }
 
         public void SendInfo(LogSend log)

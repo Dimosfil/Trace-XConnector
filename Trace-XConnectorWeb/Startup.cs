@@ -22,6 +22,11 @@ namespace Trace_XConnectorWeb
         {
             services.AddControllersWithViews();
 
+            services.AddControllersWithViews();
+            services.AddRazorPages();
+
+            //services.AddControllers().AddNewtonsoftJson(x => x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+
             services.AddScoped<IUserActionLogsSender, UserActionLogsSender>();
 
             // In production, the Angular files will be served from this directory
