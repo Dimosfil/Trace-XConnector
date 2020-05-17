@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic.CompilerServices;
 using Newtonsoft.Json;
 using NLog;
 using Trace_XConnectorWeb.Trace_X;
@@ -33,75 +34,29 @@ namespace Trace_XConnectorWeb.Controllers
         }
 
         /// GET api/EtalonByerFilials/5
-        [HttpGet("{id}")]
-        public async Task<IEnumerable<WeatherForecast>> Get(int isStart)
+        [HttpGet("{commandId}")]
+        public async Task<IEnumerable<WeatherForecast>> Get(int commandId)
         {
-            string str = "Task<IEnumerable<WeatherForecast>>";
+            Program.logger.Debug($" commandId {commandId}");
 
-
-            if (isStart == 1)
+            switch (commandId)
             {
-                str = "if (isStart == 1)";
-                Program.logger.Debug(str);
-            }
-
-            try
-            {
-                
-                runing = !runing;
-
-
-                str = "Program.logger.Debug IEnumerable<WeatherForecast> Get() rng: STARTED!!!!";
-                Program.logger.Debug(str);
-
-                await Process(false);
-
-                var rng = new Random();
-                //_userActionLogsSender.SendInfo(new LogSend() { LogMsg = "IEnumerable<WeatherForecast> Get() rng: " });
-
-                Program.logger.Debug("Program.logger.Debug IEnumerable<WeatherForecast> Get() rng: ");
-
-                //nlogger.Debug("nlogger IEnumerable<WeatherForecast>");
-                return Enumerable.Range(1, 1).Select(index => new WeatherForecast
-                    {
-                        Date = DateTime.Now.AddDays(index),
-                        TemperatureC = rng.Next(-20, 55),
-                        Summary = str
-                    })
-                    .ToArray();
-            }
-            catch (Exception e)
-            {
-                runing = false;
-
-                return Enumerable.Range(1, 1).Select(index => new WeatherForecast
-                    {
-                        Date = DateTime.Now.AddDays(index),
-                        TemperatureC = -1,
-                        Summary = $"Exception e {e.ToString()}"
-                    })
-                    .ToArray();
+                case 0: return await StartStopUpdate(false);
+                case 1: return await StartStopUpdate(true);
+                case 2:
+                default: return await StartOnce();
             }
         }
 
-        [HttpGet]
-        public async Task<IEnumerable<WeatherForecast>> Get()
+        async Task<IEnumerable<WeatherForecast>> StartOnce()
         {
             try
             {
                 string str = "Task<IEnumerable<WeatherForecast>>";
+                str = "Program.logger.Debug IEnumerable<WeatherForecast> Get() rng: STARTED!!!!";
+                Program.logger.Debug(str);
 
-                runing = !runing;
-
-
-                if (runing)
-                {
-                    runing = true;
-                    str = "Program.logger.Debug IEnumerable<WeatherForecast> Get() rng: STARTED!!!!";
-                    Program.logger.Debug(str);
-
-                    await Process(true);
-                }
+                await Process(false);
 
                 var rng = new Random();
                 //_userActionLogsSender.SendInfo(new LogSend() { LogMsg = "IEnumerable<WeatherForecast> Get() rng: " });
@@ -131,8 +86,48 @@ namespace Trace_XConnectorWeb.Controllers
             }
         }
 
+        async Task<IEnumerable<WeatherForecast>> StartStopUpdate(bool isStart)
+        {
+            try
+            {
+                string str = "Task<IEnumerable<WeatherForecast>>";
+                runing = isStart;
 
+                if (runing)
+                {
+                    runing = true;
+                    str = "Program.logger.Debug IEnumerable<WeatherForecast> Get() rng: STARTED!!!!";
+                    Program.logger.Debug(str);
 
+                    await Process(true);
+                }
+
+                var rng = new Random();
+                //_userActionLogsSender.SendInfo(new LogSend() { LogMsg = "IEnumerable<WeatherForecast> Get() rng: " });
+
+                Program.logger.Debug("Program.logger.Debug IEnumerable<WeatherForecast> Get() rng: ");
+
+                return Enumerable.Range(1, 1).Select(index => new WeatherForecast
+                {
+                    Date = DateTime.Now.AddDays(index),
+                    TemperatureC = rng.Next(-20, 55),
+                    Summary = str
+                })
+                    .ToArray();
+            }
+            catch (Exception e)
+            {
+                runing = false;
+
+                return Enumerable.Range(1, 1).Select(index => new WeatherForecast
+                {
+                    Date = DateTime.Now.AddDays(index),
+                    TemperatureC = -1,
+                    Summary = $"Exception e {e.ToString()}"
+                })
+                    .ToArray();
+            }
+        }
 
         public async Task Process(bool isUpdate)
         {
@@ -154,15 +149,6 @@ namespace Trace_XConnectorWeb.Controllers
             HttpManager.Init();
             Program.logger.Debug("Inited!");
 
-            //var name = Enum.GetName(typeof(Finish), "Finish2");
-            //var name = Enum.Parse<Finish>("Finish4");
-            //var value = (int)name;
-            //Console.WriteLine($"Finish name {name} value {value}");
-
-            runing = true;
-            //Thread thread = new Thread(Update);
-            //thread.Start();
-
             if (isUpdate)
             {
                 await Update();
@@ -177,7 +163,6 @@ namespace Trace_XConnectorWeb.Controllers
 
             Program.logger.Debug("Press enter to Stop !");
 
-            Console.ReadLine();
             LogDBManager.GetInstance().Stop();
             runing = false;
 
@@ -219,7 +204,7 @@ namespace Trace_XConnectorWeb.Controllers
                     Program.logger.Debug(e);
                 }
             }
-            
+
 
             try
             {
@@ -269,11 +254,12 @@ namespace Trace_XConnectorWeb.Controllers
 
                     //Console.WriteLine($"result: {JsonConvert.SerializeObject(jsonOrderExportData, Formatting.Indented)}");
                     Program.logger.Debug($"result: {result}");
-                    Console.ReadLine();
 
-                    var jsonOrderExportDataToString = JsonConvert.SerializeObject(jsonOrderExportData);
-                    FileManager.Instance.WriteJson("orderExportData_", jsonOrderExportDataToString);
-
+                    if (jsonOrderExportData != null)
+                    {
+                        var jsonOrderExportDataToString = JsonConvert.SerializeObject(jsonOrderExportData);
+                        FileManager.Instance.WriteJson("orderExportData_", jsonOrderExportDataToString);
+                    }
                 }
                 else
                 {

@@ -22,27 +22,39 @@ export class FetchDataComponent {
 
     public startOnce() {
 
-      this.http.get<WeatherForecast[]>(this.baseUrl + 'weatherforecast/1').subscribe(result => {
+      //this.http.get<WeatherForecast[]>(this.baseUrl + 'weatherforecast').subscribe(result => {
+      //  this.forecasts = result;
+      //}, error => console.error(error));
+
+
+        this.getWithId(2).subscribe(result => {
+          this.forecasts = result;
+        }, error => console.error(error));
+    }
+
+    getWithId(commandId: number) {
+        return this.http.get<WeatherForecast[]>(this.GetWeatherForecastString() + '/' + commandId);
+    }
+
+    GetWeatherForecastString() {
+        return this.baseUrl + 'weatherforecast';
+    }
+
+
+    public start() {
+
+      this.getWithId(1).subscribe(result => {
         this.forecasts = result;
       }, error => console.error(error));
 
     }
 
 
-    public start() {
-
-        this.http.get<WeatherForecast[]>(this.baseUrl + 'weatherforecast').subscribe(result => {
-            this.forecasts = result;
-        }, error => console.error(error));
-
-    }
-
-
     public stop() {
 
-        this.http.get<WeatherForecast[]>(this.baseUrl + 'weatherforecast').subscribe(result => {
-            this.forecasts = result;
-        }, error => console.error(error));
+      this.getWithId(0).subscribe(result => {
+        this.forecasts = result;
+      }, error => console.error(error));
 
     }
 }
