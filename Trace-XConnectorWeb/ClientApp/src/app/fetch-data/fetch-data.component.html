@@ -6,23 +6,41 @@
 
 <table class='table table-striped' aria-labelledby="tableLabel" *ngIf="forecasts">
   <thead>
-  <tr>
-    <th>Date</th>
-    <th>Temp. (C)</th>
-    <th>Temp. (F)</th>
-    <th>Summary</th>
-  </tr>
+    <tr>
+      <th>Date</th>
+      <th>Temp. (C)</th>
+      <th>Temp. (F)</th>
+      <th>Summary</th>
+    </tr>
   </thead>
   <tbody>
-  <tr *ngFor="let forecast of forecasts">
-    <td>{{ forecast.date }}</td>
-    <td>{{ forecast.temperatureC }}</td>
-    <td>{{ forecast.temperatureF }}</td>
-    <td>{{ forecast.summary }}</td>
-  </tr>
+    <tr *ngFor="let forecast of forecasts">
+      <td>{{ forecast.date }}</td>
+      <td>{{ forecast.temperatureC }}</td>
+      <td>{{ forecast.temperatureF }}</td>
+      <td>{{ forecast.summary }}</td>
+    </tr>
   </tbody>
 </table>
 
-<button class="btn btn-primary" (click)="startOnce()">StartOnce</button>
-<button class="btn btn-primary" (click)="start()">Start</button>
-<button class="btn btn-primary" (click)="stop()">Stop</button>
+<div>
+  /api/v2/uidrequests?isSync=true&format=RussianCRPT
+</div>
+
+<div>
+  <button class="btn btn-primary" (click)="startOnce()">StartOnce</button>
+  <button class="btn btn-primary" (click)="start()">Start</button>
+  <button class="btn btn-primary" (click)="stop()">Stop</button>
+  <button class="btn btn-primary" (click)="reject()">Reject</button>
+</div>
+
+
+
+<button class="btn btn-primary" (click)="uidrequestsGet()">uidrequests</button>
+
+<div>
+  <button class="btn btn-primary" (click)="SGTINPost()">SGTINPost</button>
+  <button class="btn btn-primary" (click)="SSCCPostCase()">SSCCPostCase</button>
+  <button class="btn btn-primary" (click)="SSCCPostPallet()">SSCCPostPallet</button>
+</div>
+

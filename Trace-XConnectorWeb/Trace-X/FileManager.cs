@@ -12,7 +12,8 @@ namespace Trace_XConnectorWeb.Trace_X
         private static FileManager instance;
         public static void Init()
         {
-            instance = new FileManager();
+            if (Instance == null)
+                instance = new FileManager();
         }
 
         public void WriteJson(string fileName, string text)

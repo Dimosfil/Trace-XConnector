@@ -12,8 +12,8 @@ using Trace_XConnectorWeb.Trace_X;
 namespace Trace_XConnectorWeb.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
-    public class WeatherForecastController : ControllerBase
+    [Route("api/[controller]")]
+    public class ProsalexController : ControllerBase
     {
         private static bool needSave = true;
         private static bool runing = false;
@@ -24,14 +24,22 @@ namespace Trace_XConnectorWeb.Controllers
         };
 
         private readonly IUserActionLogsSender _userActionLogsSender;
-        private readonly ILogger<WeatherForecastController> _logger;
+        private readonly ILogger<ProsalexController> _logger;
         private Logger nlogger;
 
-        public WeatherForecastController(IUserActionLogsSender userActionLogsSender, ILogger<WeatherForecastController> logger)
+        public ProsalexController(IUserActionLogsSender userActionLogsSender, ILogger<ProsalexController> logger)
         {
             _userActionLogsSender = userActionLogsSender;
             //_logger = logger;
         }
+
+        [HttpGet()]
+        public IActionResult Get()
+        {
+            Program.logger.Debug($" commandId Get");
+            return Ok();
+        }
+
 
         /// GET api/EtalonByerFilials/5
         [HttpGet("{commandId}")]
@@ -131,7 +139,7 @@ namespace Trace_XConnectorWeb.Controllers
 
         public async Task Process(bool isUpdate)
         {
-            Program.logger.Debug("Hello World!");
+            Program.logger.Debug($"Process isUpdate {isUpdate}");
 
             Program.logger.Debug("Init FileManager!");
             FileManager.Init();
@@ -178,6 +186,8 @@ namespace Trace_XConnectorWeb.Controllers
             {
                 Program.logger.Debug("Update timer");
                 await ConvertAlgoritm();
+
+
                 System.Threading.Thread.Sleep(period);
             }
         }
@@ -201,7 +211,7 @@ namespace Trace_XConnectorWeb.Controllers
                 }
                 catch (Exception e)
                 {
-                    Program.logger.Debug(e);
+                    Program.logger.Error(e.ToString);
                 }
             }
 

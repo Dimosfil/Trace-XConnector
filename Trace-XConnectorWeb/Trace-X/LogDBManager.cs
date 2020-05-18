@@ -33,14 +33,17 @@ namespace Trace_XConnectorWeb.Trace_X
 
         public static void Init()
         {
-            _instance = new LogDBManager();
+            if (_instance == null)
+            {
+                _instance = new LogDBManager();
 
-            //_instance._logger = logger;
+                //_instance._logger = logger;
 
-            _instance.sLogDBConnectionString = SystemConfig.sLogDBConnectString;
-            _instance.LogDBEnabled = SystemConfig.LogDbEnabled;
+                _instance.sLogDBConnectionString = SystemConfig.sLogDBConnectString;
+                _instance.LogDBEnabled = SystemConfig.LogDbEnabled;
 
-            _instance.Start();
+                _instance.Start();
+            }
         }
 
         //private CompositeLogger _logger = null;

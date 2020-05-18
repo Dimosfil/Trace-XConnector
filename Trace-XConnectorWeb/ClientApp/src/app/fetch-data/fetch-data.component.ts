@@ -1,5 +1,5 @@
 import { Component, Inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 @Component({
     selector: 'app-fetch-data',
@@ -22,41 +22,124 @@ export class FetchDataComponent {
 
     public startOnce() {
 
-      //this.http.get<WeatherForecast[]>(this.baseUrl + 'weatherforecast').subscribe(result => {
-      //  this.forecasts = result;
-      //}, error => console.error(error));
+        //this.http.get<WeatherForecast[]>(this.baseUrl + 'weatherforecast').subscribe(result => {
+        //  this.forecasts = result;
+        //}, error => console.error(error));
 
 
         this.getWithId(2).subscribe(result => {
-          this.forecasts = result;
+            this.forecasts = result;
         }, error => console.error(error));
     }
 
     getWithId(commandId: number) {
-        return this.http.get<WeatherForecast[]>(this.GetWeatherForecastString() + '/' + commandId);
+        var fullUrl = this.GetWeatherForecastString() + '/' + commandId;
+        return this.http.get<WeatherForecast[]>(fullUrl);
     }
 
     GetWeatherForecastString() {
-        return this.baseUrl + 'weatherforecast';
+        var fullUrl = this.baseUrl + 'api/' + 'Prosalex';
+        return fullUrl;
     }
 
 
     public start() {
 
-      this.getWithId(1).subscribe(result => {
-        this.forecasts = result;
-      }, error => console.error(error));
+        this.getWithId(1).subscribe(result => {
+            this.forecasts = result;
+        }, error => console.error(error));
 
     }
 
 
     public stop() {
 
-      this.getWithId(0).subscribe(result => {
+        this.getWithId(0).subscribe(result => {
+            this.forecasts = result;
+        }, error => console.error(error));
+    }
+
+    public reject() {
+
+      this.getWithId(-1).subscribe(result => {
         this.forecasts = result;
       }, error => console.error(error));
 
     }
+
+    public uidrequestsGet() {
+
+        this.getuidString(true, 'RussianCRPT').subscribe(result => {
+            this.forecasts = result;
+        }, error => console.error(error));
+
+    }
+    getuidString(isSync: boolean, format: string) {
+        var fullUrl = this.GetUidrequestsString() + '?isSync=' + isSync + '&format=' + format;
+        return this.http.get<WeatherForecast[]>(fullUrl);
+    }
+
+    GetUidrequestsString() {
+        var fullUrl = this.baseUrl + 'api/v2/' + 'uidrequests';
+        return fullUrl;
+    }
+
+    SGTINPost() {
+
+        var body = {
+            UIDRequestTypeKey: "04607035391972_CRPT",
+            Name: "SampleUIDRequestName",
+        }
+
+        this.getuidStringPost(true, 'RussianCRPT', body).subscribe(result => {
+            //this.forecasts = result;
+        }, error => console.error(error));
+    }
+
+    SSCCPostCase() {
+
+        var body = {
+            UIDRequestTypeKey: "1+4607035",
+            Name: "SampleUIDRequestName",
+        }
+
+        this.getuidStringPost(true, 'DetailURI', body).subscribe(result => {
+            //this.forecasts = result;
+        }, error => console.error(error));
+    }
+
+    SSCCPostPallet() {
+
+        var body = {
+            UIDRequestTypeKey: "2+4607035",
+            Name: "SampleUIDRequestName",
+        }
+        this.getuidStringPost(true, 'DetailURI', body).subscribe(result => {
+            //this.forecasts = result;
+        }, error => console.error(error));
+    }
+
+    getuidStringPost(isSync: boolean, format: string, body: any) {
+        var fullUrl = this.GetUidrequestsString() + '?isSync=' + isSync + '&format=' + format;
+
+        //var options: {
+        //    headers?: HttpHeaders | {
+        //        "HTTP/1.1 200 OK",
+        //        'Content-type:application/json;charset=utf-8',
+        //    },
+        //}
+
+        const headerDict = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Access-Control-Allow-Headers': 'Content-Type',
+        }
+
+        const requestOptions: any = { headers: headerDict };
+
+        return this.http.post<WeatherForecast[]>(fullUrl, body, requestOptions);
+    }
+
 }
 
 interface WeatherForecast {
