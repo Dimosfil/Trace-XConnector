@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 namespace Trace_XConnectorWeb.Trace_X
 {
@@ -31,7 +32,7 @@ namespace Trace_XConnectorWeb.Trace_X
         //    _instance.Start();
         //}
 
-        public static void Init()
+        public static void Init(IConfiguration configuration)
         {
             if (_instance == null)
             {
@@ -39,7 +40,8 @@ namespace Trace_XConnectorWeb.Trace_X
 
                 //_instance._logger = logger;
 
-                _instance.sLogDBConnectionString = SystemConfig.sLogDBConnectString;
+                var connectionStrings = configuration["ConnectionStrings:DefaultConnection"];
+                _instance.sLogDBConnectionString = connectionStrings;// SystemConfig.sLogDBConnectString;
                 _instance.LogDBEnabled = SystemConfig.LogDbEnabled;
 
                 _instance.Start();

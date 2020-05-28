@@ -1,8 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using Newtonsoft.Json;
 
 namespace Trace_XConnectorWeb.Trace_X
 {
@@ -16,10 +22,10 @@ namespace Trace_XConnectorWeb.Trace_X
                 instance = new FileManager();
         }
 
-        public void WriteJson(string fileName, string text)
+        public void WriteJson(string path, string fileName, string text)
         {
             // создаем каталог для файла
-            string path = @"C:\work\XConnectorXml";
+            //path = @"C:\work\XConnectorXml";
             DirectoryInfo dirInfo = new DirectoryInfo(path);
             if (!dirInfo.Exists)
             {
@@ -40,10 +46,10 @@ namespace Trace_XConnectorWeb.Trace_X
             }
         }
 
-        public void WriteXml(string text)
+        public void WriteXml(string path, string text)
         {
             // создаем каталог для файла
-            string path = @"C:\work\XConnectorXml";
+            //string path = @"C:\work\XConnectorXml";
             DirectoryInfo dirInfo = new DirectoryInfo(path);
             if (!dirInfo.Exists)
             {
@@ -64,6 +70,65 @@ namespace Trace_XConnectorWeb.Trace_X
             }
         }
 
+        public string ReadFile(string fileName)
+        {
+            //string path = @"C:\work\Trace-XConnector\Trace-XConnector\OrderExport.txt";
+            string path = fileName;
+
+            string text = String.Empty;
+            //try
+            //{
+                
+            //}
+            //catch (Exception e)
+            //{
+            //    Program.logger.Error(e.ToString());
+            //    return text;
+            //}
+
+            bool isLocked = true;
+            int rptCnt = 0;
+            do
+            {
+                try
+                {
+                    //using (var file = new StreamReader(fileName, Encoding.GetEncoding(1251)))
+                    //{
+                        
+                    //}
+
+                    using (StreamReader sr = new StreamReader(path))
+                    {
+                        text = sr.ReadToEnd();
+                        //Console.WriteLine();
+                        //return text;
+                    }
+
+                    isLocked = false;
+                }
+                catch (IOException e)
+                {
+                    if (rptCnt >= 10)
+                        throw;
+
+                    var errorCode = Marshal.GetHRForException(e) & ((1 << 16) - 1);
+
+                    isLocked = errorCode == 32 || errorCode == 33;
+                    if (isLocked)
+                    {
+                        Trace.TraceError("Can't read file {0}. File is locked. Try #" + rptCnt, path);
+                        Thread.Sleep(1000);
+                        rptCnt++;
+                    }
+                    else
+                        throw;
+                }
+            } while (isLocked);
+
+
+            return text;
+        }
+
         public async Task<string> ReadFileAsync(string fileName)
         {
             //string path = @"C:\work\Trace-XConnector\Trace-XConnector\OrderExport.txt";
@@ -76,19 +141,268 @@ namespace Trace_XConnectorWeb.Trace_X
                 {
                     text = await sr.ReadToEndAsync();
                     //Console.WriteLine();
+                    return text;
                 }
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Program.logger.Error(e.ToString());
+                return text;
             }
-
-            return text;//.Trim();
         }
 
         string[] statusStrings = new[] { "Rejected", "Printed" };
 
-        public async Task<JsonOrderExportData> GetOrderExportAsync(JsonOrderData orderData)
+        public JsonOrderExportData GetOrderExportAsync(JsonOrderData orderData, EPCISDocument epcisDocument)
+        {
+            var orderExport = new JsonOrderExportData();
+
+            orderExport.orderId = orderData.orderId;
+
+            var objectEventList = new List<EPCISBodyEventListObjectEvent>();
+            var aggregationEventList = new List<EPCISBodyEventListAggregationEvent>();
+
+            bool isCorrectEPCISDocument = false;
+
+            foreach (var item in epcisDocument.EPCISBody.EventList.Items)
+            {
+                if(item == null)
+                    continue;
+
+                if (item is EPCISBodyEventListObjectEvent objectEvent)
+                {
+                    objectEventList.Add(objectEvent);
+                    continue;
+                }
+
+                if (item is EPCISBodyEventListAggregationEvent aggregationEvent)
+                {
+                    aggregationEventList.Add(aggregationEvent);
+                    continue;
+                }
+            }
+
+            var addedObjectEventList = objectEventList.FindAll(a =>
+                a.action == "ADD");
+
+            var rejectedObjectEventList = objectEventList.Find(a =>
+                a.action == "DELETE");
+
+
+            if (!CheckForCorrectEPCISDocument(addedObjectEventList, orderData))
+            {
+                return null;
+            }
+
+            var allAddedItemsUpdateData = new List<UpdatedData>();
+            var allRejectedItemsUpdateData = new List<UpdatedData>();
+
+            foreach (var pallet in orderData.pallets)
+            {
+                foreach (var objectEvent in addedObjectEventList)
+                {
+                    if (objectEvent.epcList == null)
+                        continue;
+                    
+                    if (objectEvent.epcList.FirstOrDefault(e => e.Contains(pallet)) != null)
+                    {
+                        var updateData = new UpdatedData()
+                        {
+                            type = "Pallet",
+                            serial = pallet,
+                            attachmentType = "Case",
+                            status = "Printed", //statusStrings[next],
+                        };
+
+                        allAddedItemsUpdateData.Add(updateData);
+                    }
+                }
+            }
+
+            foreach (var dataCase in orderData.cases)
+            {
+                foreach (var objectEvent in addedObjectEventList)
+                {
+                    if (objectEvent.epcList == null)
+                        continue;
+
+                    if (objectEvent.epcList.FirstOrDefault(e => e.Contains(dataCase)) != null)
+                    {
+                        var newCase = new UpdatedData()
+                        {
+                            type = "Case",
+                            serial = dataCase,
+                            attachmentType = "Carton",
+                            status = "Printed",
+                        };
+
+                        allAddedItemsUpdateData.Add(newCase);
+                    }
+                }
+            }
+
+            foreach (var carton in orderData.cartons)
+            {
+                foreach (var objectEvent in addedObjectEventList)
+                {
+                    if (objectEvent.epcList == null)
+                        continue;
+
+                    if (objectEvent.epcList.FirstOrDefault(e => e.Contains(carton.serial)) != null)
+                    {
+                        var newCarton = new UpdatedData()
+                        {
+                            type = "Carton",
+                            serial = carton.serial,
+                            status = "Printed",
+                        };
+
+                        allAddedItemsUpdateData.Add(newCarton);
+                    }
+                }
+            }
+
+            foreach (var pallet in orderData.pallets)
+            {
+                if (rejectedObjectEventList.epcList?.FirstOrDefault(e => e.Contains(pallet)) != null)
+                {
+                    var updateData = new UpdatedData()
+                    {
+                        type = "Pallet",
+                        serial = pallet,
+                        attachmentType = "Case",
+                        status = "Rejected", //statusStrings[next],
+                    };
+
+                    allRejectedItemsUpdateData.Add(updateData);
+                }
+            }
+
+            foreach (var dataCase in orderData.cases)
+            {
+                if (rejectedObjectEventList.epcList?.FirstOrDefault(e => e.Contains(dataCase)) != null)
+                {
+                    var newCase = new UpdatedData()
+                    {
+                        type = "Case",
+                        serial = dataCase,
+                        attachmentType = "Carton",
+                        status = "Rejected",
+                    };
+
+                    allRejectedItemsUpdateData.Add(newCase);
+                }
+            }
+
+            foreach (var carton in orderData.cartons)
+            {
+                if (rejectedObjectEventList.epcList?.FirstOrDefault(e => e.Contains(carton.serial)) != null)
+                {
+                    var newCarton = new UpdatedData()
+                    {
+                        type = "Carton",
+                        serial = carton.serial,
+                        status = "Rejected",//statusStrings[next],
+                    };
+
+                    allRejectedItemsUpdateData.Add(newCarton);
+                }
+            }
+
+            foreach (var aggregationEvent in aggregationEventList)
+            {
+                if (aggregationEvent.extension.name == "PACKAGING_LEVEL" && aggregationEvent.extension.Value == "4")
+                {
+                    var pallet = allAddedItemsUpdateData.FirstOrDefault(i => aggregationEvent.parentID.Contains(i.serial));
+
+                    if (pallet == null)
+                    {
+                        Program.logger.Error(
+                            $"pallet == null aggregationEvent {JsonConvert.SerializeObject(aggregationEvent)}");
+                        continue;
+                    }
+
+                    orderExport.data.Add(pallet);
+                    allAddedItemsUpdateData.Remove(pallet);
+
+                    foreach (var childEpC in aggregationEvent.childEPCs)
+                    {
+                        var sscc = allAddedItemsUpdateData.FirstOrDefault(i => childEpC.Contains(i.serial));
+                        pallet.attachment.Add(sscc);
+                        allAddedItemsUpdateData.Remove(sscc);
+                    }
+                }
+            }
+
+            foreach (var aggregationEvent in aggregationEventList)
+            {
+                if (aggregationEvent.extension.name == "PACKAGING_LEVEL" && aggregationEvent.extension.Value == "3")
+                {
+                    var parentID = aggregationEvent.parentID;
+                    var sscc = allAddedItemsUpdateData.FirstOrDefault(i => parentID.Contains(i.serial));
+                    if (sscc == null)
+                    {
+                        foreach (var data in orderExport.data)
+                        {
+                            sscc = data.attachment.FirstOrDefault(i => parentID.Contains(i.serial));
+                            if(sscc != null)
+                                break;
+                        }
+                    }
+
+                    if (sscc == null)
+                    {
+                        Program.logger.Error($"sscc == null aggregationEvent {JsonConvert.SerializeObject(aggregationEvent)}");
+                        continue;
+                    }
+                    orderExport.data.Add(sscc);
+                    allAddedItemsUpdateData.Remove(sscc);
+
+                    foreach (var childEpC in aggregationEvent.childEPCs)
+                    {
+                        var sgtin = allAddedItemsUpdateData.FirstOrDefault(i => childEpC.Contains(i.serial));
+                        sscc.attachment.Add(sgtin);
+                        allAddedItemsUpdateData.Remove(sgtin);
+                    }
+                }
+            }
+
+            foreach (var updatedData in allAddedItemsUpdateData)
+            {
+                orderExport.data.Add(updatedData);
+            }
+
+            foreach (var updatedData in allRejectedItemsUpdateData)
+            {
+                orderExport.data.Add(updatedData);
+            }
+
+            return orderExport;
+        }
+
+        private bool CheckForCorrectEPCISDocument(List<EPCISBodyEventListObjectEvent> addedObjectEventList,
+            JsonOrderData orderData)
+        {
+            Program.logger.Error($"CheckForCorrectEPCISDocument addedObjectEventList.Count {addedObjectEventList.Count}");
+
+            foreach (var objectEvent in addedObjectEventList)
+            {
+                var extension = objectEvent.extension.FirstOrDefault(e => e.name == "PRODUCT_ID_LEVEL_1");
+                if (extension != null && extension.Value == orderData.gtin)
+                {
+                    continue;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        //public async Task<JsonOrderExportData> Reject(JsonOrderData orderData)
+        public JsonOrderExportData Reject(JsonOrderData orderData)
         {
             var orderExport = new JsonOrderExportData();
 
@@ -103,7 +417,7 @@ namespace Trace_XConnectorWeb.Trace_X
                     type = "Pallet",
                     serial = pallet,
                     attachmentType = "Case",
-                    status = "Printed",//statusStrings[next],
+                    status = "Rejected",
                 });
             }
 
@@ -122,7 +436,7 @@ namespace Trace_XConnectorWeb.Trace_X
                             type = "Case",
                             serial = @case,
                             attachmentType = "Carton",
-                            status = "Printed",
+                            status = "Rejected",
                         };
                         currentPallet.attachment.Add(newCase);
 
@@ -138,7 +452,7 @@ namespace Trace_XConnectorWeb.Trace_X
                                     type = "Carton",
                                     serial = carton.serial,
                                     //status = "Printed",//statusStrings[next],
-                                    status = statusStrings[next],
+                                    status = "Rejected",
                                 });
 
                                 caartonsCount++;
@@ -150,9 +464,9 @@ namespace Trace_XConnectorWeb.Trace_X
                 }
             }
 
-
             return orderExport;
         }
+
 
         public async Task<JsonOrderExportData> GetOrderExportAsync2(JsonOrderData orderData)
         {
@@ -187,6 +501,14 @@ namespace Trace_XConnectorWeb.Trace_X
             }
 
             return orderExport;
+        }
+
+        public XElement LoadXmlFromFile(string path)
+        {
+            //XElement booksFromFile = XElement.Load(@"books.xml");
+            XElement booksFromFile = XElement.Load(path);
+
+            return booksFromFile;
         }
 
     }

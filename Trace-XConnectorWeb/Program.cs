@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
@@ -19,7 +20,7 @@ namespace Trace_XConnectorWeb
         public static void Main(string[] args)
         {
             logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
-            
+            var stringbuilder = new StringBuilder("Main(string[] args) ");
             try
             {
                 logger.Debug("init main");
@@ -28,8 +29,13 @@ namespace Trace_XConnectorWeb
             }
             catch (Exception exception)
             {
+                foreach (var s in args)
+                {
+                    stringbuilder.Append(s);
+                }
+
                 //NLog: catch setup errors
-                logger.Error(exception, "Stopped program because of exception");
+                logger.Error(exception, $"Stopped program because of exception {stringbuilder.ToString()}");
                 throw;
             }
             finally

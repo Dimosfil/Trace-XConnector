@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace Trace_XConnectorWeb.Trace_X
 {
+    [Serializable]
     public class Carton
     {
         public string serial { get; set; }
@@ -12,6 +13,7 @@ namespace Trace_XConnectorWeb.Trace_X
         public string f92 { get; set; }
     }
 
+    [Serializable]
     public class JsonOrderData
     {
         public int orderId { get; set; }

@@ -52,7 +52,7 @@ namespace Trace_XConnectorWeb.Trace_X
             req.Method = "POST";
 
             //HttpWebResponse resp = (HttpWebResponse)req.();
-            HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
+            HttpWebResponse resp = (HttpWebResponse) req.GetResponse();
 
             string text = String.Empty;
             var httpResp = resp.GetResponseStream();

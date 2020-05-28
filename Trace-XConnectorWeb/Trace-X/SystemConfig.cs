@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Specialized;
 
 namespace Trace_XConnectorWeb.Trace_X
 {
@@ -12,6 +13,7 @@ namespace Trace_XConnectorWeb.Trace_X
 
         static SystemConfig()
         {
+            //sLogDBConnectString = "server=localhost;Database=XConnector;user id=sa;password=1";
             sLogDBConnectString = "server=localhost;Database=XConnector;user id=sa;password=1";
             LogDbEnabled = true;
         }

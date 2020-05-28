@@ -61,9 +61,9 @@ export class FetchDataComponent {
 
     public reject() {
 
-      this.getWithId(-1).subscribe(result => {
-        this.forecasts = result;
-      }, error => console.error(error));
+        this.getWithId(-1).subscribe(result => {
+            this.forecasts = result;
+        }, error => console.error(error));
 
     }
 
@@ -92,7 +92,12 @@ export class FetchDataComponent {
         }
 
         this.getuidStringPost(true, 'RussianCRPT', body).subscribe(result => {
-            //this.forecasts = result;
+            var array = new Array<WeatherForecast>();
+            var item = new WeatherForecast();
+            item.summary = result.toString();
+            array.push(item);
+
+            this.forecasts = array;
         }, error => console.error(error));
     }
 
@@ -104,7 +109,12 @@ export class FetchDataComponent {
         }
 
         this.getuidStringPost(true, 'DetailURI', body).subscribe(result => {
-            //this.forecasts = result;
+            var array = new Array<WeatherForecast>();
+            var item = new WeatherForecast();
+            item.summary = result.toString();
+            array.push(item);
+
+            this.forecasts = array;
         }, error => console.error(error));
     }
 
@@ -115,7 +125,12 @@ export class FetchDataComponent {
             Name: "SampleUIDRequestName",
         }
         this.getuidStringPost(true, 'DetailURI', body).subscribe(result => {
-            //this.forecasts = result;
+            var array = new Array<WeatherForecast>();
+            var item = new WeatherForecast();
+            item.summary = result.toString();
+            array.push(item);
+
+            this.forecasts = array;
         }, error => console.error(error));
     }
 
@@ -137,12 +152,12 @@ export class FetchDataComponent {
 
         const requestOptions: any = { headers: headerDict };
 
-        return this.http.post<WeatherForecast[]>(fullUrl, body, requestOptions);
+        return this.http.post<string>(fullUrl, body, requestOptions);
     }
 
 }
 
-interface WeatherForecast {
+class WeatherForecast {
     date: string;
     temperatureC: number;
     temperatureF: number;

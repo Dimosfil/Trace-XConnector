@@ -18,15 +18,15 @@ namespace Trace_XConnectorWeb.Controllers
         {
             try
             {
-                if (isStart == 0)
-                {
-                    runing = false;
-                }
-                else
-                {
-                    runing = true;
-                    await Process();
-                }
+                //if (isStart == 0)
+                //{
+                //    runing = false;
+                //}
+                //else
+                //{
+                //    runing = true;
+                //    await Process();
+                //}
 
                 var str = "Program.logger.Debug IEnumerable<WeatherForecast> Get() rng: STARTED!!!!";
                 Program.logger.Debug(str);
@@ -53,7 +53,7 @@ namespace Trace_XConnectorWeb.Controllers
             Program.logger.Debug("Inited");
 
             Program.logger.Debug("Init LogDBManager");
-            LogDBManager.Init();
+            //LogDBManager.Init();
             Program.logger.Debug("LogDBManager Inited!");
 
             Program.logger.Debug("Init HttpManager!");
@@ -106,7 +106,7 @@ namespace Trace_XConnectorWeb.Controllers
 
                 JsonOrderData jsonOrderData = ConverterManager.Instance.GetJsonObject<JsonOrderData>(json);
 
-                FileManager.Instance.WriteJson("orderData_", json);
+                FileManager.Instance.WriteJson(String.Empty, "orderData_", json);
 
                 //if (jsonOrderData == null)
                 //{
@@ -134,7 +134,7 @@ namespace Trace_XConnectorWeb.Controllers
                     Program.logger.Debug("Converted!");
 
                     Program.logger.Debug("FileManager Writing...");
-                    FileManager.Instance.WriteXml(xmlString);
+                    FileManager.Instance.WriteXml(String.Empty, xmlString);
                     Program.logger.Debug("Writed!");
 
                     if (needSave)
@@ -148,15 +148,15 @@ namespace Trace_XConnectorWeb.Controllers
                     //var jsonFromFile = await FileManager.Instance.ReadFileAsync();
                     //var jsonFromFileObj = ConverterManager.Instance.GetJsonObject<JsonOrderExportData>(jsonFromFile);
 
-                    var jsonOrderExportData = await FileManager.Instance.GetOrderExportAsync(jsonOrderData);
-                    result = HttpManager.Instance.PostOrderExportRequest(jsonOrderExportData);
+                    //var jsonOrderExportData = await FileManager.Instance.GetOrderExportAsync(jsonOrderData);
+                    //result = HttpManager.Instance.PostOrderExportRequest(jsonOrderExportData);
 
-                    //Console.WriteLine($"result: {JsonConvert.SerializeObject(jsonOrderExportData, Formatting.Indented)}");
-                    Program.logger.Debug($"result: {result}");
-                    Console.ReadLine();
+                    ////Console.WriteLine($"result: {JsonConvert.SerializeObject(jsonOrderExportData, Formatting.Indented)}");
+                    //Program.logger.Debug($"result: {result}");
+                    //Console.ReadLine();
 
-                    var jsonOrderExportDataToString = JsonConvert.SerializeObject(jsonOrderExportData);
-                    FileManager.Instance.WriteJson("orderExportData_", jsonOrderExportDataToString);
+                    //var jsonOrderExportDataToString = JsonConvert.SerializeObject(jsonOrderExportData);
+                    //FileManager.Instance.WriteJson(string.Empty, "orderExportData_", jsonOrderExportDataToString);
 
                 }
                 else
