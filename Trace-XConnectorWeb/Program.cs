@@ -10,6 +10,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using NLog.Web;
+using Trace_XConnectorWeb.Controllers;
 
 namespace Trace_XConnectorWeb
 {

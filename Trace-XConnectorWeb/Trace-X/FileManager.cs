@@ -197,14 +197,27 @@ namespace Trace_XConnectorWeb.Trace_X
             var allAddedItemsUpdateData = new List<UpdatedData>();
             var allRejectedItemsUpdateData = new List<UpdatedData>();
 
+            Program.logger.Debug($"addedObjectEventList orderData.pallets {orderData.pallets.Count}");
+
             foreach (var pallet in orderData.pallets)
             {
                 foreach (var objectEvent in addedObjectEventList)
                 {
                     if (objectEvent.epcList == null)
                         continue;
-                    
-                    if (objectEvent.epcList.FirstOrDefault(e => e.Contains(pallet)) != null)
+
+                    var sscc = objectEvent.epcList.FirstOrDefault(e =>
+                    {
+                        if (!e.Contains("urn:epc:id:sscc:"))
+                            return false;
+
+                        var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(e);
+                        Program.logger.Debug($"Add Pallets  SSCCForOrderDataFormat {ssccForOrderDataFormat} pallet {pallet} e {e}");
+                        
+                        return pallet.Contains(ssccForOrderDataFormat);
+                    });
+
+                    if (sscc != null)
                     {
                         var updateData = new UpdatedData()
                         {
@@ -219,6 +232,8 @@ namespace Trace_XConnectorWeb.Trace_X
                 }
             }
 
+            //Program.logger.Debug($"addedObjectEventList orderData.cases {orderData.cases.Count}");
+
             foreach (var dataCase in orderData.cases)
             {
                 foreach (var objectEvent in addedObjectEventList)
@@ -226,7 +241,18 @@ namespace Trace_XConnectorWeb.Trace_X
                     if (objectEvent.epcList == null)
                         continue;
 
-                    if (objectEvent.epcList.FirstOrDefault(e => e.Contains(dataCase)) != null)
+                    var sscc = objectEvent.epcList.FirstOrDefault(e =>
+                    {
+                        if (!e.Contains("urn:epc:id:sscc:"))
+                            return false;
+
+                        var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(e);
+                        Program.logger.Debug($"Add Cases SSCCForOrderDataFormat {ssccForOrderDataFormat} Case {dataCase} e {e}");
+
+                        return dataCase.Contains(ssccForOrderDataFormat);
+                    });
+
+                    if (sscc != null)
                     {
                         var newCase = new UpdatedData()
                         {
@@ -241,6 +267,7 @@ namespace Trace_XConnectorWeb.Trace_X
                 }
             }
 
+            //Program.logger.Debug($"addedObjectEventList orderData.cartons {orderData.cartons.Count}");
             foreach (var carton in orderData.cartons)
             {
                 foreach (var objectEvent in addedObjectEventList)
@@ -262,9 +289,23 @@ namespace Trace_XConnectorWeb.Trace_X
                 }
             }
 
+            Program.logger.Debug($"addedObjectEventList Printed {allAddedItemsUpdateData.Count}");
+
             foreach (var pallet in orderData.pallets)
             {
-                if (rejectedObjectEventList.epcList?.FirstOrDefault(e => e.Contains(pallet)) != null)
+                var sscc = rejectedObjectEventList.epcList?.FirstOrDefault(e =>
+                {
+                    if (e.Contains("urn:epc:id:sscc:"))
+                    {
+                        var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(e);
+                        Program.logger.Debug($"Rejected Cases SSCCForOrderDataFormat {ssccForOrderDataFormat} pallet {pallet} e {e}");
+
+                        return pallet.Contains(ssccForOrderDataFormat);
+                    }
+                    return false;
+                });
+
+                if (sscc != null)
                 {
                     var updateData = new UpdatedData()
                     {
@@ -280,7 +321,20 @@ namespace Trace_XConnectorWeb.Trace_X
 
             foreach (var dataCase in orderData.cases)
             {
-                if (rejectedObjectEventList.epcList?.FirstOrDefault(e => e.Contains(dataCase)) != null)
+                var sscc = rejectedObjectEventList.epcList?.FirstOrDefault(e =>
+                {
+                    if (e.Contains("urn:epc:id:sscc:"))
+                    {
+                        var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(e);
+                        Program.logger.Debug($"Rejected Cases SSCCForOrderDataFormat {ssccForOrderDataFormat} Case {dataCase} e {e}");
+
+                        return dataCase.Contains(ssccForOrderDataFormat);
+                    }
+                        
+                    return false;
+                });
+
+                if (sscc != null)
                 {
                     var newCase = new UpdatedData()
                     {
@@ -309,11 +363,22 @@ namespace Trace_XConnectorWeb.Trace_X
                 }
             }
 
+            Program.logger.Debug($" Rejected allRejectedItemsUpdateData Printed {allRejectedItemsUpdateData.Count}");
+
             foreach (var aggregationEvent in aggregationEventList)
             {
                 if (aggregationEvent.extension.name == "PACKAGING_LEVEL" && aggregationEvent.extension.Value == "4")
                 {
-                    var pallet = allAddedItemsUpdateData.FirstOrDefault(i => aggregationEvent.parentID.Contains(i.serial));
+                    var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(aggregationEvent.parentID);
+                    var pallet = allAddedItemsUpdateData.FirstOrDefault(i =>
+                    {
+                        if (i.type == "Pallet")
+                        {
+                            Program.logger.Debug($"Pallet SSCCForOrderDataFormat {ssccForOrderDataFormat}, i.serial {i.serial}");
+                            return i.serial.Contains(ssccForOrderDataFormat);
+                        }
+                        return false;
+                    });
 
                     if (pallet == null)
                     {
@@ -327,7 +392,11 @@ namespace Trace_XConnectorWeb.Trace_X
 
                     foreach (var childEpC in aggregationEvent.childEPCs)
                     {
-                        var sscc = allAddedItemsUpdateData.FirstOrDefault(i => childEpC.Contains(i.serial));
+                        var SSCCForOrderDataFormat = GetSSCCForOrderDataFormat(childEpC);
+                        var sscc = allAddedItemsUpdateData.FirstOrDefault(i =>
+                        {
+                            return i.serial.Contains(SSCCForOrderDataFormat);
+                        });
                         pallet.attachment.Add(sscc);
                         allAddedItemsUpdateData.Remove(sscc);
                     }
@@ -339,12 +408,28 @@ namespace Trace_XConnectorWeb.Trace_X
                 if (aggregationEvent.extension.name == "PACKAGING_LEVEL" && aggregationEvent.extension.Value == "3")
                 {
                     var parentID = aggregationEvent.parentID;
-                    var sscc = allAddedItemsUpdateData.FirstOrDefault(i => parentID.Contains(i.serial));
+                    var sscc = allAddedItemsUpdateData.FirstOrDefault(i =>
+                    {
+                        var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(aggregationEvent.parentID);
+                        if (i.type == "Case")
+                        {
+                            Program.logger.Debug($"Case SSCCForOrderDataFormat {ssccForOrderDataFormat}, i.serial {i.serial}");
+                            return i.serial.Contains(ssccForOrderDataFormat);
+                        }
+
+                        return false;
+                    });
                     if (sscc == null)
                     {
                         foreach (var data in orderExport.data)
                         {
-                            sscc = data.attachment.FirstOrDefault(i => parentID.Contains(i.serial));
+                            sscc = data.attachment.FirstOrDefault(i =>
+                            {
+                                var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(parentID);
+                                Program.logger.Debug($"Case SSCCForOrderDataFormat {ssccForOrderDataFormat}, i.serial {i.serial}");
+
+                                return i.serial.Contains(ssccForOrderDataFormat);
+                            });
                             if(sscc != null)
                                 break;
                         }
@@ -378,6 +463,28 @@ namespace Trace_XConnectorWeb.Trace_X
             }
 
             return orderExport;
+        }
+
+        //коробка из ордерДаты - 146070353974584071
+        //отправка лайн мастер -  4607035.1397458407
+        //получаю в ордер хмл -   4607035.1397458407
+        //конвертирую для ордерЭкспортДжисон   14607035397458407 + надо вычислить 1 символ
+
+        private string GetSSCCForOrderDataFormat(string sscc)
+        {
+            string result = String.Empty;
+            if (!sscc.Contains("urn:epc:id:sscc:"))
+                return result;
+
+            result = sscc.Replace("urn:epc:id:sscc:", String.Empty);
+            var ids = result.Split('.');
+            var digit = ids[1][0];
+            ids[1] = ids[1].Remove(0, 1);
+            result = digit + ids[0] + ids[1];
+
+            //Program.logger.Debug($"GetSSCCForOrderDataFormat sscc {sscc} result {result}");
+
+            return result;
         }
 
         private bool CheckForCorrectEPCISDocument(List<EPCISBodyEventListObjectEvent> addedObjectEventList,

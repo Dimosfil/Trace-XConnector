@@ -68,6 +68,13 @@ export class HomeComponent {
         return fullUrl;
     }
 
+    public init() {
+
+      this.getWithId(-2).subscribe(result => {
+        this.forecasts = result;
+      }, error => console.error(error));
+
+    }
 
     public start() {
 
@@ -114,6 +121,7 @@ export class HomeComponent {
 
         var body = {
             UIDRequestTypeKey: "04607035391972_CRPT",
+            Quantity: "1",
             Name: "SampleUIDRequestName",
         }
 
@@ -131,6 +139,7 @@ export class HomeComponent {
 
         var body = {
             UIDRequestTypeKey: "1+4607035",
+            Quantity: 1,
             Name: "SampleUIDRequestName",
         }
 
@@ -148,6 +157,7 @@ export class HomeComponent {
 
         var body = {
             UIDRequestTypeKey: "2+4607035",
+            Quantity: 1,
             Name: "SampleUIDRequestName",
         }
         this.getuidStringPost(true, 'DetailURI', body).subscribe(result => {

@@ -5,12 +5,18 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace Trace_XConnectorWeb.Trace_X
 {
-    public static class Utils
+    public static class Helper
     {
         public static JsonOrderData JsonOrderData = null;
+
+        public static void Release()
+        {
+            JsonOrderData = null;
+        }
 
         /// <summary>
         /// Perform a deep Copy of the object.
