@@ -240,7 +240,7 @@ namespace Trace_XConnectorWeb.Controllers
             string result = String.Empty;
             JsonOrderExportData jsonOrderExportData = null;
 
-            jsonOrderExportData = FileManager.Instance.GetOrderExportAsync(JsonOrderData, EPCISDocument);
+            jsonOrderExportData = FileManager.Instance.GetOrderExport(JsonOrderData, EPCISDocument);
 
             if (jsonOrderExportData == null)
             {
@@ -285,7 +285,7 @@ namespace Trace_XConnectorWeb.Controllers
                                        | NotifyFilters.DirectoryName;
 
                 // Only watch text files.
-                //watcher.Filter = "*.txt";
+                watcher.Filter = "*.xml";
 
                 // Add event handlers.
                 watcher.Created += OnCreated;
@@ -322,6 +322,12 @@ namespace Trace_XConnectorWeb.Controllers
                     orderExportXmlFile = new OrderExportXmlFile();
                     orderExportXmlFile.FullPath = e.FullPath;
                     orderExportXmlFile.Name = e.Name;
+
+                    if (!orderExportXmlFile.Name.Contains(JsonOrderData.series))
+                    {
+                        Program.logger.Error($"OnCreated orderExportXmlFile not valid Name {orderExportXmlFile.Name} orderData series {JsonOrderData.series}");
+                        return;
+                    }
 
                     var xmlString = FileManager.Instance.ReadFile(orderExportXmlFile.FullPath);
 

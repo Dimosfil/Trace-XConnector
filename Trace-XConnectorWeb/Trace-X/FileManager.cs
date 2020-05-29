@@ -102,6 +102,7 @@ namespace Trace_XConnectorWeb.Trace_X
                         text = sr.ReadToEnd();
                         //Console.WriteLine();
                         //return text;
+                        sr.Close();
                     }
 
                     isLocked = false;
@@ -116,7 +117,7 @@ namespace Trace_XConnectorWeb.Trace_X
                     isLocked = errorCode == 32 || errorCode == 33;
                     if (isLocked)
                     {
-                        Trace.TraceError("Can't read file {0}. File is locked. Try #" + rptCnt, path);
+                        Program.logger.Debug("Can't read file {0}. File is locked. Try #" + rptCnt, path);
                         Thread.Sleep(1000);
                         rptCnt++;
                     }
@@ -153,7 +154,7 @@ namespace Trace_XConnectorWeb.Trace_X
 
         string[] statusStrings = new[] { "Rejected", "Printed" };
 
-        public JsonOrderExportData GetOrderExportAsync(JsonOrderData orderData, EPCISDocument epcisDocument)
+        public JsonOrderExportData GetOrderExport(JsonOrderData orderData, EPCISDocument epcisDocument)
         {
             var orderExport = new JsonOrderExportData();
 
@@ -211,9 +212,8 @@ namespace Trace_XConnectorWeb.Trace_X
                         if (!e.Contains("urn:epc:id:sscc:"))
                             return false;
 
+                        //Program.logger.Debug($"Add Pallet SSCCForOrderDataFormat {ssccForOrderDataFormat} pallet {pallet} e {e}");
                         var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(e);
-                        Program.logger.Debug($"Add Pallets  SSCCForOrderDataFormat {ssccForOrderDataFormat} pallet {pallet} e {e}");
-                        
                         return pallet.Contains(ssccForOrderDataFormat);
                     });
 
@@ -228,6 +228,8 @@ namespace Trace_XConnectorWeb.Trace_X
                         };
 
                         allAddedItemsUpdateData.Add(updateData);
+
+                        Program.logger.Debug($"Added Pallets  SSCCForOrderDataFormat {JsonConvert.SerializeObject(updateData)}");
                     }
                 }
             }
@@ -247,7 +249,7 @@ namespace Trace_XConnectorWeb.Trace_X
                             return false;
 
                         var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(e);
-                        Program.logger.Debug($"Add Cases SSCCForOrderDataFormat {ssccForOrderDataFormat} Case {dataCase} e {e}");
+                        //Program.logger.Debug($"Add Cases SSCCForOrderDataFormat {ssccForOrderDataFormat} Case {dataCase} e {e}");
 
                         return dataCase.Contains(ssccForOrderDataFormat);
                     });
@@ -263,6 +265,7 @@ namespace Trace_XConnectorWeb.Trace_X
                         };
 
                         allAddedItemsUpdateData.Add(newCase);
+                        Program.logger.Debug($"Added Cases Case {JsonConvert.SerializeObject(newCase)}");
                     }
                 }
             }
@@ -289,7 +292,7 @@ namespace Trace_XConnectorWeb.Trace_X
                 }
             }
 
-            Program.logger.Debug($"addedObjectEventList Printed {allAddedItemsUpdateData.Count}");
+            Program.logger.Debug($"addedObjectEventList For Printed {allAddedItemsUpdateData.Count}");
 
             foreach (var pallet in orderData.pallets)
             {
@@ -298,7 +301,7 @@ namespace Trace_XConnectorWeb.Trace_X
                     if (e.Contains("urn:epc:id:sscc:"))
                     {
                         var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(e);
-                        Program.logger.Debug($"Rejected Cases SSCCForOrderDataFormat {ssccForOrderDataFormat} pallet {pallet} e {e}");
+                        //Program.logger.Debug($"Rejected Pallets SSCCForOrderDataFormat {ssccForOrderDataFormat} pallet {pallet} e {e}");
 
                         return pallet.Contains(ssccForOrderDataFormat);
                     }
@@ -316,6 +319,8 @@ namespace Trace_XConnectorWeb.Trace_X
                     };
 
                     allRejectedItemsUpdateData.Add(updateData);
+
+                    Program.logger.Debug($"Rejected Pallets pallet {JsonConvert.SerializeObject(updateData)} pallet");
                 }
             }
 
@@ -326,7 +331,7 @@ namespace Trace_XConnectorWeb.Trace_X
                     if (e.Contains("urn:epc:id:sscc:"))
                     {
                         var ssccForOrderDataFormat = GetSSCCForOrderDataFormat(e);
-                        Program.logger.Debug($"Rejected Cases SSCCForOrderDataFormat {ssccForOrderDataFormat} Case {dataCase} e {e}");
+                        //Program.logger.Debug($"Rejected Cases SSCCForOrderDataFormat {ssccForOrderDataFormat} Case {dataCase} e {e}");
 
                         return dataCase.Contains(ssccForOrderDataFormat);
                     }
@@ -345,6 +350,8 @@ namespace Trace_XConnectorWeb.Trace_X
                     };
 
                     allRejectedItemsUpdateData.Add(newCase);
+
+                    Program.logger.Debug($"Rejected Cases Case {JsonConvert.SerializeObject(newCase)}");
                 }
             }
 

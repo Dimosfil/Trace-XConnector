@@ -42,12 +42,19 @@
   <!--<button class="btn btn-primary" (click)="startOnce()">StartOnce (одиночный запуск)</button>-->
   <button class="btn btn-primary" (click)="init()">Init (запуск сервиса)</button>
   <button class="btn btn-primary" (click)="start()">Start (запуск сервиса)</button>
-  <button class="btn btn-primary" (click)="stop()">Stop (остановка)</button>
-  <button class="btn btn-primary" (click)="reject()">Reject (реджект всех итемов от просалекса)</button>
+  
   <button class="btn btn-primary" (click)="getInfo()">getInfo (получить инфу об ОрдерДате)</button>
 </div>
 
+<p>(остановка)</p>
+<div>
+  <button class="btn btn-danger" (click)="stop()">Stop</button>
+</div>
 
+<p>реджект всех итемов от просалекса</p>
+<div>
+  <button class="btn btn-danger" (click)="reject()">Reject</button>
+</div>
 
 <!--<button class="btn btn-primary" (click)="uidrequestsGet()">uidrequests</button>-->
 <p>Для тестирования команд для Line Master</p>
