@@ -65,7 +65,6 @@ namespace Trace_XConnectorWeb.Controllers
         [HttpPost]
         public IActionResult PostAsync(bool isSync, string format, [FromBody] object bodyJson)
         {
-
             try
             {
                 SGTINBody body = JsonConvert.DeserializeObject<SGTINBody>(bodyJson.ToString());
@@ -74,18 +73,28 @@ namespace Trace_XConnectorWeb.Controllers
 
                 Program.logger.Debug(str);
 
-                if (Helper.JsonOrderData == null)
-                {
-                    Helper.JsonOrderData = Helper.Clone(Prosalex.JsonOrderData);// await GetFromLocal();
-                }
+                //if (Helper.JsonOrderData == null)
+                //{
+                //    Helper.JsonOrderData = Helper.Clone(Prosalex.JsonOrderData);// await GetFromLocal();
+                //}
+                string json = String.Empty;
 
                 jsonOrderData = Helper.JsonOrderData;
 
+                if (jsonOrderData == null)
+                {
+                    var badResponse = Content(json);
+                    badResponse.ContentType = "application/json;charset=utf-8";
+                    badResponse.StatusCode = (int)HttpStatusCode.InternalServerError;
 
-                string json = String.Empty;
+                    return badResponse;
+                }
+                
                 var shotKey = GetRequestTypeKeyShot(body.UIDRequestTypeKey);
                 if (format.Contains("CRPT"))
                 {
+                    Program.logger.Debug($"UidRequestsController SGTIN CARTONS LineMaster Quantity {body.Quantity} in jsonOrderData {jsonOrderData.cartons?.Count}");
+
                     //ЗАПРОС SGTIN от LineMaster
                     var firstUrnPart = GetURNSGTIN(body.UIDRequestTypeKey);
                     json = GetSGTIN(jsonOrderData, firstUrnPart, shotKey, body.Quantity);
@@ -97,6 +106,8 @@ namespace Trace_XConnectorWeb.Controllers
                 {
                     if (body.UIDRequestTypeKey.Contains("1+"))
                     {
+                        Program.logger.Debug($"UidRequestsController SSCC Case LineMaster Quantity {body.Quantity} in jsonOrderData {jsonOrderData.cases?.Count}");
+
                         //ЗАПРОС SSCC для коробок от LineMaster для коробок
                         var typeKey = body.UIDRequestTypeKey.Remove(0, 2);
                         var firstUrnPart = GetURNSSCC(typeKey);
@@ -106,6 +117,7 @@ namespace Trace_XConnectorWeb.Controllers
                     }
                     else if (body.UIDRequestTypeKey.Contains("2+"))
                     {
+                        Program.logger.Debug($"UidRequestsController SSCC PALLETS LineMaster Quantity {body.Quantity} in jsonOrderData {jsonOrderData.pallets?.Count}");
                         //ЗАПРОС SSCC для коробок от LineMaster для палет
                         var typeKey = body.UIDRequestTypeKey.Remove(0, 2);
                         var firstUrnPart = GetURNSSCC(typeKey);

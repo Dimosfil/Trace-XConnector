@@ -57,7 +57,7 @@ namespace Trace_XConnectorWeb.Controllers
             Program.logger.Debug("Inited!");
         }
 
-        public string StartStopUpdate(in bool isStart)
+        public string StartStopUpdate(bool isStart)
         {
             string str = "";
             runing = isStart;
@@ -205,6 +205,9 @@ namespace Trace_XConnectorWeb.Controllers
                     }
 
                     JsonOrderData = jsonOrderData;
+                    Helper.JsonOrderData = Helper.Clone(Prosalex.JsonOrderData);// await GetFromLocal();
+
+                    Program.logger.Debug($"ConvertAlgoritm  -- Helper.JsonOrderData {Helper.JsonOrderData.series} JsonOrderData {JsonOrderData.series}");
 
                     inProductionStarted = true;
                     runing = false;
@@ -267,6 +270,10 @@ namespace Trace_XConnectorWeb.Controllers
             inProductionStarted = false;
             runing = true;
 
+            JsonOrderData = null;
+
+            Helper.Release();
+
             //StartStopUpdate(true);
         }
 
@@ -317,43 +324,48 @@ namespace Trace_XConnectorWeb.Controllers
             {
                 // Specify what is done when a file is changed, created, or deleted.
                 Program.logger.Debug($"OnCreated File: {e.FullPath} {e.ChangeType}");
-                if (orderExportXmlFile == null)
+
+                orderExportXmlFile = new OrderExportXmlFile();
+                orderExportXmlFile.FullPath = e.FullPath;
+                orderExportXmlFile.Name = e.Name;
+
+                if (!orderExportXmlFile.Name.Contains(JsonOrderData.series))
                 {
-                    orderExportXmlFile = new OrderExportXmlFile();
-                    orderExportXmlFile.FullPath = e.FullPath;
-                    orderExportXmlFile.Name = e.Name;
-
-                    if (!orderExportXmlFile.Name.Contains(JsonOrderData.series))
-                    {
-                        Program.logger.Error($"OnCreated orderExportXmlFile not valid Name {orderExportXmlFile.Name} orderData series {JsonOrderData.series}");
-                        return;
-                    }
-
-                    var xmlString = FileManager.Instance.ReadFile(orderExportXmlFile.FullPath);
-
-                    Program.logger.Debug($"OnCreated ReadedFile xml {xmlString.Length}");
-
-                    EPCISDocument result;
-
-                    var serializer = new XmlSerializer(typeof(EPCISDocument));
-
-                    using (var stream = new StringReader(xmlString))
-                    using (var reader = XmlReader.Create(stream))
-                    {
-                        result = (EPCISDocument)serializer.Deserialize(reader);
-                        stream.Close();
-                    }
-
-                    Program.logger.Debug($"OnCreated orderExportXmlFile Deserialized result result.EPCISBody.EventList.Items.Length {result.EPCISBody.EventList.Items.Length}");
-
-                    EPCISDocument = result;
-
-                    PostOrderExport();
+                    Program.logger.Error($"OnCreated orderExportXmlFile not valid Name {orderExportXmlFile.Name} orderData series {JsonOrderData.series}");
+                    return;
                 }
-                else
+
+                var xmlString = FileManager.Instance.ReadFile(orderExportXmlFile.FullPath);
+
+                Program.logger.Debug($"OnCreated ReadedFile xml {xmlString.Length}");
+
+                EPCISDocument result;
+
+                Program.logger.Debug($"OnCreated Start serialize xml {xmlString.Length}");
+
+                var serializer = new XmlSerializer(typeof(EPCISDocument));
+
+                using (var stream = new StringReader(xmlString))
+                using (var reader = XmlReader.Create(stream))
                 {
-                    Program.logger.Error($"OnCreated Error File: {e.FullPath} {e.ChangeType}");
+                    result = (EPCISDocument)serializer.Deserialize(reader);
+                    stream.Close();
                 }
+
+                Program.logger.Debug($"OnCreated orderExportXmlFile Deserialized result result.EPCISBody.EventList.Items.Length {result.EPCISBody.EventList.Items.Length}");
+
+                EPCISDocument = result;
+
+                PostOrderExport();
+
+                //if (orderExportXmlFile == null)
+                //{
+                    
+                //}
+                //else
+                //{
+                //    Program.logger.Error($"OnCreated Error File: {e.FullPath} {e.ChangeType}");
+                //}
             }
             catch (Exception exception)
             {
@@ -368,6 +380,8 @@ namespace Trace_XConnectorWeb.Controllers
             Program.logger.Debug($"OnDeleted File: {e.FullPath} {e.ChangeType}");
             if (orderExportXmlFile != null)
             {
+                Program.logger.Debug($"orderExport OnDeleted orderExportXmlFile = null");
+
                 orderExportXmlFile = null;
             }
             else
@@ -399,23 +413,24 @@ namespace Trace_XConnectorWeb.Controllers
             JsonOrderData result = ConverterManager.Instance.GetJsonObject<JsonOrderData>(orderDataJsonString);
             return result;
         }
-
-        void EndProcesses()
-        {
-            runing = false;
-            inProductionStarted = false;
-            JsonOrderData = null;
-            Helper.Release();
-        }
-
+        
         public void Stop()
         {
             Program.logger.Debug("EndProcesses...");
 
             EndProcesses();
             LogDBManager.GetInstance().Stop();
-            Program.logger.Debug("Programm End!");
+            Program.logger.Debug($"Programm End! JsonOrderData {JsonOrderData} Helper.JsonOrderData {Helper.JsonOrderData}");
         }
+        void EndProcesses()
+        {
+            runing = false;
+            inProductionStarted = false;
+            JsonOrderData = null;
+            orderExportXmlFile = null;
+            Helper.Release();
+        }
+
         public void Dispose()
         {
             Stop();

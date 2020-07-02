@@ -20,29 +20,12 @@ namespace Trace_XConnectorWeb.Controllers
     [Route("api/[controller]")]
     public class ProsalexController : ControllerBase//, IDisposable
     {
-        //public static JsonOrderData JsonOrderData = null;
-        //public static EPCISDocument EPCISDocument = null;
-
-        //private static bool needSave = true;
-        //private static bool runing = false;
-        //private static bool inProductionStarted = false;
-
-        //private static readonly string[] Summaries = new[]
-        //{
-        //    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        //};
-
-        //private readonly IUserActionLogsSender _userActionLogsSender;
-        //private readonly ILogger<ProsalexController> _logger;
-        //private Logger nlogger;
-
+        private readonly ConsumeScopedServiceHostedService _scopedProcessingService;
         public IConfiguration Configuration { get; }
 
-        //private string pathXml;
-        //private string pathJson;
-
-        public ProsalexController(IUserActionLogsSender userActionLogsSender, ILogger<ProsalexController> logger, IConfiguration configuration)
+        public ProsalexController(IUserActionLogsSender userActionLogsSender, ILogger<ProsalexController> logger, IConfiguration configuration, ConsumeScopedServiceHostedService scopedProcessingService)
         {
+            _scopedProcessingService = scopedProcessingService;
             //_userActionLogsSender = userActionLogsSender;
             Configuration = configuration;
             //_logger = logger;
@@ -102,11 +85,12 @@ namespace Trace_XConnectorWeb.Controllers
         //public async Task<IEnumerable<WeatherForecast>> Get(int commandId)
         public IEnumerable<WeatherForecast> Get(int commandId)
         {
-            Program.logger.Debug($" commandId {commandId}");
+            Program.logger.Debug($"Get commandId {commandId} ManagedThreadId {Thread.CurrentThread.ManagedThreadId}");
 
             switch (commandId)
             {
-                case -2: Prosalex.Instance.InitProcess(); 
+                case -2: Prosalex.Instance.InitProcess();
+                    
                     break;
                 case -1: return RejectJsonOrderData();
                 case 0: return StartStopUpdate(false);
@@ -187,6 +171,8 @@ namespace Trace_XConnectorWeb.Controllers
             Program.logger.Debug(str);
 
             Prosalex.Instance.Stop();
+            Prosalex.Instance.InitProcess();
+            Prosalex.Instance.StartStopUpdate(true);
 
             return Enumerable.Range(1, 1).Select(index => new WeatherForecast
             {
