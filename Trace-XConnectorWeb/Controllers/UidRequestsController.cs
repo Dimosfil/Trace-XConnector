@@ -19,6 +19,11 @@ namespace Trace_XConnectorWeb.Controllers
     [ApiController]
     public class UidRequestsController : ControllerBase
     {
+        public class ErrorResponse
+        {
+            public string Message { get; set; }
+        }
+
         public IConfiguration Configuration { get; }
 
         private string pathXml;
@@ -69,7 +74,7 @@ namespace Trace_XConnectorWeb.Controllers
             {
                 SGTINBody body = JsonConvert.DeserializeObject<SGTINBody>(bodyJson.ToString());
 
-                var str = $"REQUEST PostAsync isSync {isSync} format {format} body {body.Name}";
+                var str = $"REQUEST UidRequestsController PostAsync isSync {isSync} format {format} UIDRequestTypeKey {body.UIDRequestTypeKey} body {body.Name} ";
 
                 Program.logger.Debug(str);
 
@@ -87,12 +92,27 @@ namespace Trace_XConnectorWeb.Controllers
                     badResponse.ContentType = "application/json;charset=utf-8";
                     badResponse.StatusCode = (int)HttpStatusCode.InternalServerError;
 
+                    Program.logger.Error($"jsonOrderData == null bodyJson {bodyJson}");
+
                     return badResponse;
                 }
                 
                 var shotKey = GetRequestTypeKeyShot(body.UIDRequestTypeKey);
                 if (format.Contains("CRPT"))
                 {
+                    if (!CheckSGTIN(body, jsonOrderData))
+                    {
+                        var errorResponse = new ErrorResponse();
+
+                        errorResponse.Message = $"UID Request Type Key {body.UIDRequestTypeKey} was not found.";
+
+                        var error = Content(JsonConvert.SerializeObject(errorResponse));
+                        error.ContentType = "application/json;charset=utf-8";
+                        error.StatusCode = (int)HttpStatusCode.BadRequest;
+
+                        return error;
+                    }
+
                     Program.logger.Debug($"UidRequestsController SGTIN CARTONS LineMaster Quantity {body.Quantity} in jsonOrderData {jsonOrderData.cartons?.Count}");
 
                     //ЗАПРОС SGTIN от LineMaster
@@ -100,7 +120,7 @@ namespace Trace_XConnectorWeb.Controllers
                     json = GetSGTIN(jsonOrderData, firstUrnPart, shotKey, body.Quantity);
 
                     Program.logger.Debug($"UidRequestsController CRPT запрос SGTIN от LineMaster json {json}");
-                    Program.logger.Debug($"UidRequestsController GetSGTIN cartons.Count left {jsonOrderData.cartons.Count}");
+                    Program.logger.Debug($"UidRequestsController GetSGTIN cartons.Count left {jsonOrderData.cartons?.Count}");
                 }
                 else if (format.Contains("DetailURI"))
                 {
@@ -113,7 +133,7 @@ namespace Trace_XConnectorWeb.Controllers
                         var firstUrnPart = GetURNSSCC(typeKey);
                         json = GetSSCC(jsonOrderData.cases, firstUrnPart, typeKey, body.Quantity, 1);
                         Program.logger.Debug($"RESPONSE UidRequestsController DetailURI ЗАПРОС SSCC для коробок от LineMaster для коробок json {json}");
-                        Program.logger.Debug($"UidRequestsController GetSSCC cases left {jsonOrderData.cases.Count} left");
+                        Program.logger.Debug($"UidRequestsController GetSSCC cases left {jsonOrderData.cases?.Count} left");
                     }
                     else if (body.UIDRequestTypeKey.Contains("2+"))
                     {
@@ -123,7 +143,7 @@ namespace Trace_XConnectorWeb.Controllers
                         var firstUrnPart = GetURNSSCC(typeKey);
                         json = GetSSCC(jsonOrderData.pallets, firstUrnPart, typeKey, body.Quantity, 2);
                         Program.logger.Debug($"RESPONSE UidRequestsController ЗАПРОС SSCC для коробок от LineMaster для палет json {json}");
-                        Program.logger.Debug($"UidRequestsController GetSSCC pallets left {jsonOrderData.pallets.Count} left");
+                        Program.logger.Debug($"UidRequestsController GetSSCC pallets left {jsonOrderData.pallets?.Count} left");
                     }
                 }
 
@@ -153,26 +173,70 @@ namespace Trace_XConnectorWeb.Controllers
             {
                 Program.logger.Error(e, "UidRequestsController PostAsync Exception ");
 
-                var mediaTypes = new MediaTypeCollection();
-                mediaTypes.Add("application/json");
-                mediaTypes.Add("charset=utf-8");
-                var result = new ObjectResult(e.ToString())
-                {
-                    StatusCode = (int)HttpStatusCode.BadRequest,
-                    ContentTypes = mediaTypes
-                };
+                //var mediaTypes = new MediaTypeCollection();
+                //mediaTypes.Add("application/json");
+                //mediaTypes.Add("charset=utf-8");
+                //var result = new ObjectResult(e.ToString())
+                //{
+                //    StatusCode = (int)HttpStatusCode.BadRequest,
+                //    ContentTypes = mediaTypes
+                //};
 
+                var response = Content($"UidRequestsController PostAsync Exception e: {e}");
+                response.ContentType = "application/json;charset=utf-8";
+                response.StatusCode = (int)HttpStatusCode.BadRequest;
 
-                return result;// BadRequest($"UidRequestsController PostAsync Exception {e.ToString()}");
+                return response;
+
+                //RestartServise();
+
+                //return response;
+
+                //return result;// BadRequest($"UidRequestsController PostAsync Exception {e.ToString()}");
             }
+        }
+
+        void RestartServise()
+        {
+            Prosalex.Instance.Restart();
+        }
+
+        bool CheckSGTIN(SGTINBody body, JsonOrderData orderData)
+        {
+            var split = body.UIDRequestTypeKey.Split("_", 2);
+            var sgtinRequest = split[0];
+
+            if (sgtinRequest == orderData.gtin)
+            {
+                var canSend = Convert.ToBoolean(Configuration["enableSendCheckSGTINToEmail"]);
+                var info = $"CheckSGTIN Valid sgtinRequest {sgtinRequest}, orderData.gtin {orderData.gtin}";
+
+                if (canSend)
+                {
+                    Prosalex.Instance.SendMailAsync(info);
+                }
+                
+                Program.logger.Debug(info);
+                return true;
+            }
+
+            var localError =
+                $"CheckSGTIN sgtinRequest != orderData.gtin sgtinRequest {sgtinRequest}, orderData.gtin {orderData.gtin}";
+            Program.logger.Error(localError);
+
+            Prosalex.Instance.SendMailAsync(localError);
+            return false;
         }
 
         string GetRequestTypeKeyShot(string requestTypeKey)
         {
+            var sourceRequestTypeKey = requestTypeKey;
             requestTypeKey = requestTypeKey.Replace("_CRPT", string.Empty);
             requestTypeKey = requestTypeKey.Remove(0, 1);
             requestTypeKey = requestTypeKey.Remove(7);
             requestTypeKey = requestTypeKey.Insert(7, ".");
+
+            Program.logger.Debug($"UidRequestsController GetRequestTypeKeyShot requestTypeKey {requestTypeKey} sourceRequestTypeKey {sourceRequestTypeKey}");
 
             return requestTypeKey;
         }

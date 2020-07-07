@@ -76,6 +76,14 @@ export class HomeComponent {
 
     }
 
+    public sendMail() {
+
+      this.getWithId(-3).subscribe(result => {
+        this.forecasts = result;
+      }, error => console.error(error));
+
+    }
+
     public start() {
 
         this.getWithId(1).subscribe(result => {

@@ -65,14 +65,16 @@ namespace Trace_XConnectorWeb.Controllers
             if (runing)
             {
                 runing = true;
-                str = "Start Update STARTED!!!!";
+                period = 5000;
+
+                str = "Сервис успешно стартовал";
                 Program.logger.Debug(str);
 
-                Process(true);
+                Task.Run(() => Process(true));
             }
             else
             {
-                str = "Stop Update";
+                str = "Сервис остановлен";
                 Program.logger.Debug(str);
 
                 Stop();
@@ -115,8 +117,8 @@ namespace Trace_XConnectorWeb.Controllers
         }
 
         private bool enableNetwork = false;
-        private bool enableReadFromFileJSON = false;
-        private bool enableReadFromFileXML = false;
+        //private bool enableReadFromFileJSON = false;
+        //private bool enableReadFromFileXML = false;
         private bool enableInProduction = false;
         private bool enableOrderExportRequest = false;
         private bool enableCanDeleteOrderXml = false;
@@ -127,8 +129,8 @@ namespace Trace_XConnectorWeb.Controllers
             string json = String.Empty;
 
             enableNetwork = Convert.ToBoolean(Configuration["enableNetwork"]);
-            enableReadFromFileJSON = Convert.ToBoolean(Configuration["enableReadFromFileJSON"]);
-            enableReadFromFileXML = Convert.ToBoolean(Configuration["enableReadFromFileXML"]);
+            //enableReadFromFileJSON = Convert.ToBoolean(Configuration["enableReadFromFileJSON"]);
+            //enableReadFromFileXML = Convert.ToBoolean(Configuration["enableReadFromFileXML"]);
             enableInProduction = Convert.ToBoolean(Configuration["enableInProduction"]);
             enableOrderExportRequest = Convert.ToBoolean(Configuration["enableOrderExportRequest"]);
             //enableOrderExportReading = Convert.ToBoolean(Configuration["enableOrderExportReading"]);
@@ -152,24 +154,28 @@ namespace Trace_XConnectorWeb.Controllers
                 catch (Exception e)
                 {
                     Program.logger.Error(e, "Send OrderDataRequest... Exception");
+                    SendMailAsync($"Send OrderDataRequest... Exception {e.ToString()}");
+                }
+            }
+            else
+            {
+                //if (enableReadFromFileJSON)
+                {
+                    Program.logger.Debug($"ConvertAlgoritm jsonOrderData == null... loading JSON from disc");
+                    json = GetFromLocalJson();
+                    jsonOrderData = ConverterManager.Instance.GetJsonObject<JsonOrderData>(json);
                 }
             }
 
             try
             {
 
-                if (jsonOrderData == null && enableReadFromFileJSON)
-                {
-                    Program.logger.Debug($"ConvertAlgoritm jsonOrderData == null... loading JSON from disc");
-                    json = GetFromLocalJson();
-                    jsonOrderData = ConverterManager.Instance.GetJsonObject<JsonOrderData>(json);
-                }
-
-                if (jsonOrderData == null && enableReadFromFileXML)
-                {
-                    Program.logger.Debug($"ConvertAlgoritm jsonOrderData == null... loading XML from disc");
-                    jsonOrderData = GetFromLocalXml();
-                }
+                
+                //if (jsonOrderData == null && enableReadFromFileXML)
+                //{
+                //    Program.logger.Debug($"ConvertAlgoritm jsonOrderData == null... loading XML from disc");
+                //    jsonOrderData = GetFromLocalXml();
+                //}
 
                 if (jsonOrderData != null)
                 {
@@ -228,6 +234,10 @@ namespace Trace_XConnectorWeb.Controllers
             catch (Exception e)
             {
                 Program.logger.Error(e, $"Task ConvertAlgoritm()");
+
+                SendMailAsync($"Task ConvertAlgoritm() Exception {e.ToString()}");
+
+                //Restart();
                 throw;
             }
         }
@@ -307,14 +317,16 @@ namespace Trace_XConnectorWeb.Controllers
 
                 while (inProductionStarted)
                 {
-                    Program.logger.Debug($"Watching... ManagedThreadId {Thread.CurrentThread.ManagedThreadId}");
+                    Program.logger.Debug($"Watching... ManagedThreadId {Thread.CurrentThread.ManagedThreadId} inProductionStarted {inProductionStarted}");
 
                     System.Threading.Thread.Sleep(period);
                 }
+
+                Program.logger.Debug($"EndWatching FileSystemWatcher ManagedThreadId {Thread.CurrentThread.ManagedThreadId} inProductionStarted {inProductionStarted}");
             }
         }
 
-        private OrderExportXmlFile orderExportXmlFile = null;
+        static private OrderExportXmlFile orderExportXmlFile = null;
 
         private void OnCreated(object source, FileSystemEventArgs e)
         {
@@ -357,20 +369,14 @@ namespace Trace_XConnectorWeb.Controllers
                 EPCISDocument = result;
 
                 PostOrderExport();
-
-                //if (orderExportXmlFile == null)
-                //{
-                    
-                //}
-                //else
-                //{
-                //    Program.logger.Error($"OnCreated Error File: {e.FullPath} {e.ChangeType}");
-                //}
             }
             catch (Exception exception)
             {
-
                 Program.logger.Error($"OnCreated Exception {exception}");
+
+                SendMailAsync($"OnCreated Exception  {exception.ToString()}");
+
+                //Restart();
             }
         }
 
@@ -413,7 +419,15 @@ namespace Trace_XConnectorWeb.Controllers
             JsonOrderData result = ConverterManager.Instance.GetJsonObject<JsonOrderData>(orderDataJsonString);
             return result;
         }
-        
+
+        public void Restart()
+        {
+            Stop();
+            InitProcess();
+            StartStopUpdate(true);
+        }
+
+
         public void Stop()
         {
             Program.logger.Debug("EndProcesses...");
@@ -421,10 +435,13 @@ namespace Trace_XConnectorWeb.Controllers
             EndProcesses();
             LogDBManager.GetInstance().Stop();
             Program.logger.Debug($"Programm End! JsonOrderData {JsonOrderData} Helper.JsonOrderData {Helper.JsonOrderData}");
+
+            SendMailAsync($"Programm End! JsonOrderData {JsonOrderData} Helper.JsonOrderData {Helper.JsonOrderData}");
         }
         void EndProcesses()
         {
             runing = false;
+            period = 10;
             inProductionStarted = false;
             JsonOrderData = null;
             orderExportXmlFile = null;
@@ -437,5 +454,20 @@ namespace Trace_XConnectorWeb.Controllers
             GC.SuppressFinalize(this);
         }
 
+        public void SendMailAsync(string message)
+        {
+            var enableEmail = Convert.ToBoolean(Configuration["enableEmailSend"]);
+
+            if (!enableEmail)
+                return;
+
+            if (string.IsNullOrEmpty(message))
+            {
+                message = "HttpManager.Instance.SendMailAsync string.IsNullOrEmpty(message)";
+            }
+
+            Program.logger.Debug($"SendMailAsync message {message}");
+            HttpManager.Instance.SendMailAsync(message);
+        }
     }
 }
