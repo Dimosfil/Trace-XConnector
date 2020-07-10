@@ -522,8 +522,6 @@ namespace Trace_XConnectorWeb.Trace_X
 
             orderExport.orderId = orderData.orderId;
 
-            var random = new Random();
-
             foreach (var pallet in orderData.pallets)
             {
                 orderExport.data.Add(new UpdatedData()
@@ -535,73 +533,147 @@ namespace Trace_XConnectorWeb.Trace_X
                 });
             }
 
-            foreach (var @case in orderData.cases)
+            if (orderData.pallets.Count > 0 && orderData.palletCapacity > 0)
             {
-                orderExport.data.Add(new UpdatedData()
+                FillHierarchyCases(orderData, orderExport);
+            }
+            else
+            {
+                foreach (var @case in orderData.cases)
                 {
-                    type = "Case",
-                    serial = @case,
-                    attachmentType = "Carton",
-                    status = "Rejected",
-                });
+                    orderExport.data.Add(new UpdatedData()
+                    {
+                        type = "Case",
+                        serial = @case,
+                        attachmentType = "Carton",
+                        status = "Rejected",
+                    });
+                }
             }
 
-            foreach (var carton in orderData.cartons)
+            if (orderData.cases.Count > 0 && orderData.caseCapacity > 0 && orderData.pallets.Count > 0 && orderData.palletCapacity > 0)
             {
-                orderExport.data.Add(new UpdatedData()
-                {
-                    type = "Carton",
-                    serial = carton.serial,
-                    //status = "Printed",//statusStrings[next],
-                    status = "Rejected",
-                });
+                FillHierarchyItems(orderData, orderExport);
             }
+            else
+            {
 
-
-            //int caartonsCount = 0;
-            //int caseCount = 0;
-
-            //foreach (var currentPallet in orderExport.data)
-            //{
-            //    if (currentPallet != null)
-            //    {
-            //        for (var caseIndex = 0; caseIndex < orderData.palletCapacity; caseIndex++)
-            //        {
-            //            var @case = orderData.cases[caseCount];
-            //            var newCase = new UpdatedData()
-            //            {
-            //                type = "Case",
-            //                serial = @case,
-            //                attachmentType = "Carton",
-            //                status = "Rejected",
-            //            };
-            //            currentPallet.attachment.Add(newCase);
-
-            //            if (caartonsCount < orderData.amount)
-            //            {
-            //                for (int i = 0; i < orderData.caseCapacity; i++)
-            //                {
-            //                    var next = random.Next(0, statusStrings.Length);
-
-            //                    var carton = orderData.cartons[caartonsCount];
-            //                    newCase.attachment.Add(new UpdatedData()
-            //                    {
-            //                        type = "Carton",
-            //                        serial = carton.serial,
-            //                        //status = "Printed",//statusStrings[next],
-            //                        status = "Rejected",
-            //                    });
-
-            //                    caartonsCount++;
-            //                }
-            //            }
-
-            //            caseCount++;
-            //        }
-            //    }
-            //}
+                if (orderData.cases.Count > 0 && orderData.caseCapacity > 0)
+                {
+                    FillHierarchyCartons(orderData, orderExport);
+                }
+                else
+                {
+                    foreach (var carton in orderData.cartons)
+                    {
+                        orderExport.data.Add(new UpdatedData()
+                        {
+                            type = "Carton",
+                            serial = carton.serial,
+                            //status = "Printed",//statusStrings[next],
+                            status = "Rejected",
+                        });
+                    }
+                }
+            }
 
             return orderExport;
+        }
+
+        void FillHierarchyCases(JsonOrderData orderData, JsonOrderExportData orderExport)
+        {
+            int caseCount = 0;
+            foreach (var currentPallet in orderExport.data)
+            {
+                if (currentPallet != null)
+                {
+                    for (var caseIndex = 0; caseIndex < orderData.palletCapacity; caseIndex++)
+                    {
+                        var @case = orderData.cases[caseCount];
+                        var newCase = new UpdatedData()
+                        {
+                            type = "Case",
+                            serial = @case,
+                            attachmentType = "Carton",
+                            status = "Rejected",
+                        };
+                        currentPallet.attachment.Add(newCase);
+
+                        caseCount++;
+                    }
+                }
+            }
+        }
+
+        void FillHierarchyCartons(JsonOrderData orderData, JsonOrderExportData orderExport)
+        {
+            int cartonsCount = 0;
+            foreach (var @case in orderExport.data)
+            {
+                if(@case.type != "Case")
+                    continue;
+
+                if (cartonsCount < orderData.amount)
+                {
+                    for (int i = 0; i < orderData.caseCapacity; i++)
+                    {
+                        var carton = orderData.cartons[cartonsCount];
+                        @case.attachment.Add(new UpdatedData()
+                        {
+                            type = "Carton",
+                            serial = carton.serial,
+                            //status = "Printed",//statusStrings[next],
+                            status = "Rejected",
+                        });
+
+                        cartonsCount++;
+                    }
+                }
+            }
+        }
+
+        void FillHierarchyItems(JsonOrderData orderData, JsonOrderExportData orderExport)
+        {
+            int cartonsCount = 0;
+            int caseCount = 0;
+
+            foreach (var currentPallet in orderExport.data)
+            {
+                if (currentPallet != null)
+                {
+                    for (var caseIndex = 0; caseIndex < orderData.palletCapacity; caseIndex++)
+                    {
+                        var @case = orderData.cases[caseCount];
+                        var newCase = new UpdatedData()
+                        {
+                            type = "Case",
+                            serial = @case,
+                            attachmentType = "Carton",
+                            status = "Rejected",
+                        };
+                        currentPallet.attachment.Add(newCase);
+
+                        if (cartonsCount < orderData.amount)
+                        {
+                            for (int i = 0; i < orderData.caseCapacity; i++)
+                            {
+                                var carton = orderData.cartons[cartonsCount];
+                                newCase.attachment.Add(new UpdatedData()
+                                {
+                                    type = "Carton",
+                                    serial = carton.serial,
+                                    //status = "Printed",//statusStrings[next],
+                                    status = "Rejected",
+                                });
+
+                                cartonsCount++;
+                            }
+                        }
+
+                        caseCount++;
+                    }
+                }
+            }
         }
 
 

@@ -70,7 +70,7 @@ namespace Trace_XConnectorWeb.Controllers
                 str = "Сервис успешно стартовал";
                 Program.logger.Debug(str);
 
-                Task.Run(() => Process(true));
+                Task.Run(() => Process(true), CancellationToken.None);//.Wait();
             }
             else
             {
